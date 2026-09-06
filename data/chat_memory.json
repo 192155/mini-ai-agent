@@ -1,0 +1,82 @@
+[
+    {
+        "role": "user",
+        "content": "What is inheritance according to my Java notes?"
+    },
+    {
+        "role": "assistant",
+        "content": "According to your Java notes, **inheritance** is defined as:\n\n* **Definition:** A mechanism where one class (the Subclass or Child) acquires the non-private properties and methods of another class (the Superclass or Parent).\n* **Purpose:** It promotes intensive code reusability.\n* **Implementation:** Java implements inheritance using the **`extends`** keyword.\n* **Hierarchy:** It models a logical **'IS-A'** hierarchy (for example, a `Car` extends `Vehicle`, meaning a *Car is-a Vehicle*)."
+    },
+    {
+        "role": "user",
+        "content": "You: hello"
+    },
+    {
+        "role": "assistant",
+        "content": "Hello Parit! How can I help you today?"
+    },
+    {
+        "role": "user",
+        "content": "what is java??"
+    },
+    {
+        "role": "assistant",
+        "content": "**Java** is a widely used, high-level, object-oriented programming language. \n\nHere are the key points about Java:\n\n* **Platform Independent:** It operates on the principle of **\"Write Once, Run Anywhere\" (WORA)**. Java code is compiled into bytecode, which can run on any system that has a Java Virtual Machine (JVM).\n* **Object-Oriented:** It organizes software around data and objects (using principles like inheritance, encapsulation, abstraction, and polymorphism) rather than just functions and logic.\n* **Common Uses:** It is heavily used for building enterprise-level applications, backend web servers, Android mobile apps, and large-scale data processing systems."
+    },
+    {
+        "role": "user",
+        "content": "What is inheritance according to my Java notes?"
+    },
+    {
+        "role": "assistant",
+        "content": "According to your Java notes, **inheritance** is defined as:\n\n* **Definition:** A mechanism where one class (the Subclass or Child) acquires the non-private properties and methods of another class (the Superclass or Parent).\n* **Purpose:** It promotes intensive code reusability.\n* **Implementation:** Java implements inheritance using the **`extends`** keyword.\n* **Hierarchy:** It models a logical **'IS-A'** hierarchy (for example, a `Car` extends `Vehicle`, meaning *Car is-a Vehicle*)."
+    },
+    {
+        "role": "user",
+        "content": "You: What is inheritance according to my Java notes?"
+    },
+    {
+        "role": "assistant",
+        "content": "According to your Java notes, **inheritance** is defined as:\n\n* **Definition:** A mechanism where one class (the Subclass or Child) acquires the non-private properties and methods of another class (the Superclass or Parent).\n* **Purpose:** It promotes intensive code reusability.\n* **Implementation:** Java implements inheritance using the **`extends`** keyword.\n* **Hierarchy:** It models a logical **'IS-A'** hierarchy (for example, a `Car` extends `Vehicle`, meaning *Car is-a Vehicle*)."
+    },
+    {
+        "role": "user",
+        "content": "What is my name?"
+    },
+    {
+        "role": "assistant",
+        "content": "Your name is **Parit**."
+    },
+    {
+        "role": "user",
+        "content": "What is Java?"
+    },
+    {
+        "role": "assistant",
+        "content": "⚠️ Gemini is temporarily unavailable because the model is experiencing high demand.\n\nPlease try again after a short while."
+    },
+    {
+        "role": "user",
+        "content": "You: What is 25 * 40?"
+    },
+    {
+        "role": "assistant",
+        "content": "🧮 **Calculator**\n\nExpression: `25*40`\n\nAnswer: **1000**"
+    },
+    {
+        "role": "user",
+        "content": "hiii"
+    },
+    {
+        "role": "assistant",
+        "content": "Hi Parit! How can I help you today?"
+    },
+    {
+        "role": "user",
+        "content": "kese ho???"
+    },
+    {
+        "role": "assistant",
+        "content": "Main badhiya hoon, Parit! Aap kaise hain? \n\nAaj main aapki kya madad kar sakta hoon?"
+    }
+]

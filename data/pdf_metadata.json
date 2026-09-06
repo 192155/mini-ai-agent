@@ -1,0 +1,30 @@
+{
+    "agilefull notes,pdf.pdf": {
+        "filename": "agilefull notes,pdf.pdf",
+        "hash": "1f21a988a9614c399e5495e8238ad43bf91cfc2d5b80f8d29bdb9bd0c8faf3bc",
+        "chunks": 23,
+        "characters": 15731,
+        "indexed": true
+    },
+    "DBMS Notes.pdf.pdf": {
+        "filename": "DBMS Notes.pdf.pdf",
+        "hash": "e51d9e14e2034209aeae77faa8318ff8f61b08a04010037bad257e510000befa",
+        "chunks": 81,
+        "characters": 56416,
+        "indexed": true
+    },
+    "Java Notes.pdf.pdf": {
+        "filename": "Java Notes.pdf.pdf",
+        "hash": "7f298a794831e22872dc413d3da06c92809d5103e8b8edfd5e0261e55c01eb4a",
+        "chunks": 70,
+        "characters": 48515,
+        "indexed": true
+    },
+    "Java_Notes.pdf.pdf": {
+        "filename": "Java_Notes.pdf.pdf",
+        "hash": "7f298a794831e22872dc413d3da06c92809d5103e8b8edfd5e0261e55c01eb4a",
+        "chunks": 70,
+        "characters": 48515,
+        "indexed": true
+    }
+}

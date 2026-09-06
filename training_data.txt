@@ -1,0 +1,65 @@
+# ==============================================================================
+# Mini AI Agent - Educational Training Data
+# 
+# NOTE FOR STUDENTS:
+# This dataset is designed for training a miniature language model to demonstrate
+# basic NLP, tokenization, embeddings, and next-token prediction.
+# It is NOT intended to produce a full ChatGPT-scale model, but rather to show
+# the core mathematical and programming principles behind neural language models.
+# ==============================================================================
+
+# Section 1: Greetings and Conversational Starters
+Hello! How are you doing today?
+Hi there! I am Mini AI Agent, your educational AI assistant.
+Hello, how can I assist you with your programming or computer science questions?
+Good morning! What would you like to learn or calculate today?
+Hey! I am ready to help you explore Python, Java, AI, and your PDF documents.
+Goodbye! Have a great day and keep learning.
+
+# Section 2: Python Programming
+Python is a high-level, interpreted programming language known for its clear syntax.
+Python supports multiple programming paradigms including object-oriented and functional programming.
+In Python, variables are dynamically typed and memory is managed automatically through garbage collection.
+Python lists are mutable ordered sequences, whereas tuples are immutable.
+Dictionaries in Python store key-value pairs and offer fast average-time lookups.
+Functions in Python are defined using the def keyword and can return multiple values.
+Python list comprehensions provide a concise way to create lists based on existing iterables.
+Python modules and packages help organize and reuse code across software projects.
+
+# Section 3: Java Programming
+Java is a class-based, object-oriented programming language designed for platform independence.
+The Java Virtual Machine executes bytecode compiled from Java source code.
+Java follows the write once, run anywhere philosophy through the JVM.
+In Java, object-oriented programming relies on encapsulation, inheritance, polymorphism, and abstraction.
+Java classes define blueprints for objects, while interfaces specify method contracts.
+Exception handling in Java uses try, catch, finally, and throw blocks for robust error recovery.
+Java garbage collection automatically frees heap memory occupied by unreachable objects.
+
+# Section 4: Artificial Intelligence & Machine Learning
+Artificial intelligence is the simulation of human intelligence processes by computer systems.
+Machine learning is a subset of AI where algorithms learn patterns from data without being explicitly programmed.
+Supervised learning uses labeled training datasets to learn mapping functions from inputs to targets.
+Unsupervised learning discovers hidden structures and patterns in unlabeled data such as clustering.
+Reinforcement learning trains agents to maximize cumulative rewards through trial and error in an environment.
+Neural networks consist of input layers, hidden layers, and output layers with connected artificial neurons.
+Deep learning uses deep neural networks with multiple hidden layers to extract hierarchical features.
+Overfitting occurs when a machine learning model memorizes training data but fails to generalize to new data.
+Regularization techniques such as dropout and weight decay help prevent overfitting in neural networks.
+
+# Section 5: Computer Science Fundamentals
+Computer science is the study of computation, information processing, and algorithmic problem solving.
+An algorithm is a step-by-step procedure or set of rules for solving a specific computational problem.
+Time complexity measures how algorithm runtime grows with input size using Big-O notation.
+Space complexity measures the amount of memory an algorithm requires relative to input size.
+Recursion is a programming technique where a function solves a problem by calling itself with smaller subproblems.
+
+# Section 6: Data Structures
+Data structures organize and store data for efficient access and modification.
+Arrays store elements of the same data type in contiguous memory locations with constant-time indexing.
+Linked lists store nodes containing data elements and pointers to subsequent nodes in memory.
+Stacks follow the Last-In First-Out principle with push and pop operations.
+Queues follow the First-In First-Out principle with enqueue and dequeue operations.
+Trees are hierarchical data structures consisting of nodes connected by edges with a root node.
+Binary search trees maintain sorted order where left descendants are smaller and right descendants are larger.
+Hash tables map keys to values using hash functions for near constant-time search, insertion, and deletion.
+Graphs consist of vertices connected by edges and model networks, relationships, and state spaces.
