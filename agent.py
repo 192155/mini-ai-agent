@@ -13,49 +13,103 @@ from ai_router import route_question
 
 load_dotenv()
 
+
+# =========================================================
+# CONFIGURATION
+# =========================================================
+
 API_KEY = os.getenv("GEMINI_API_KEY")
 
 if not API_KEY:
-    raise ValueError("GEMINI_API_KEY not found in .env")
+    raise ValueError(
+        "GEMINI_API_KEY not found in .env"
+    )
 
-MODEL_NAME = os.getenv("GEMINI_MODEL", "gemini-3.8-flash")
+MODEL_NAME = os.getenv(
+    "GEMINI_MODEL",
+    "gemini-3.8-flash"
+)
+
+# IMPORTANT:
+# Your current vector store is all_vectors.pkl
 VECTOR_STORE_PATH = "data/all_vectors.pkl"
 
-client = genai.Client(api_key=API_KEY)
+
+# =========================================================
+# GEMINI CLIENT
+# =========================================================
+
+client = genai.Client(
+    api_key=API_KEY
+)
+
+
+# =========================================================
+# CHAT MANAGER
+# =========================================================
 
 chat_manager = ChatManager()
-
-_embedding_model = None
-_vector_store = None
 
 
 # =========================================================
 # PDF SYSTEM
 # =========================================================
 
+_embedding_model = None
+_vector_store = None
+
+
 def load_pdf_system():
-    global _embedding_model, _vector_store
+
+    global _embedding_model
+    global _vector_store
 
     if _embedding_model is None:
-        print("Loading embedding model...")
+
+        print(
+            "Loading embedding model..."
+        )
+
         _embedding_model = EmbeddingModel()
-        print("Embedding model loaded.")
+
+        print(
+            "Embedding model loaded."
+        )
 
     if _vector_store is None:
-        print("Loading vector store...")
+
+        print(
+            "Loading vector store..."
+        )
 
         _vector_store = VectorStore()
 
-        if not os.path.exists(VECTOR_STORE_PATH):
+        if not os.path.exists(
+            VECTOR_STORE_PATH
+        ):
+
             raise FileNotFoundError(
-                f"Vector store not found: {VECTOR_STORE_PATH}"
+                f"Vector store not found: "
+                f"{VECTOR_STORE_PATH}"
             )
 
-        _vector_store.load(VECTOR_STORE_PATH)
+        _vector_store.load(
+            VECTOR_STORE_PATH
+        )
 
-        print("Vector store loaded.")
+        print(
+            "Vector store loaded."
+        )
 
-    return _embedding_model, _vector_store
+        print(
+            "PDF chunks:",
+            len(_vector_store.documents)
+        )
+
+    return (
+        _embedding_model,
+        _vector_store
+    )
 
 
 # =========================================================
@@ -71,18 +125,18 @@ def get_gemini_error_message(error):
         or "RESOURCE_EXHAUSTED" in error_text
         or "quota" in error_text.lower()
     ):
+
         return (
             "⚠️ Gemini API quota exhausted.\n\n"
-            "Your current Gemini free-tier "
-            "request limit has been reached.\n\n"
             "Please wait for the quota to reset "
-            "or use a Gemini API plan with higher limits."
+            "or use an API plan with higher limits."
         )
 
     if (
         "503" in error_text
         or "UNAVAILABLE" in error_text
     ):
+
         return (
             "⚠️ Gemini is temporarily busy.\n\n"
             "Please try again after a short while."
@@ -92,6 +146,7 @@ def get_gemini_error_message(error):
         "API key" in error_text
         or "API_KEY" in error_text
     ):
+
         return (
             "❌ Gemini API key problem.\n\n"
             "Check GEMINI_API_KEY in your .env file."
@@ -101,12 +156,16 @@ def get_gemini_error_message(error):
         "404" in error_text
         or "NOT_FOUND" in error_text
     ):
+
         return (
             "❌ Gemini model was not found.\n\n"
             f"Current model: {MODEL_NAME}"
         )
 
-    return "❌ Gemini API error:\n" + error_text
+    return (
+        "❌ Gemini API error:\n"
+        + error_text
+    )
 
 
 # =========================================================
@@ -122,31 +181,55 @@ def generate_answer(
     prompt = f"""
 You are Mini AI Agent.
 
-Answer the user's question clearly,
-accurately and helpfully.
+You are a helpful AI assistant.
+
+The system can use:
+- Uploaded PDF knowledge
+- Web search results
+- Calculator
+- Previous conversation
 
 Previous conversation:
-
 {conversation}
 
-Relevant knowledge:
-
+Available knowledge:
 {context}
 
 User question:
-
 {question}
 
 Instructions:
 
-1. Give a direct answer.
-2. If relevant knowledge is provided,
-   use it.
-3. Do not invent information.
-4. Keep the answer easy to understand.
-5. Use bullet points when useful.
-6. If the user asks for code,
+1. Give a direct and useful answer.
+
+2. If PDF information is provided and relevant,
+   use the PDF information.
+
+3. If web information is provided,
+   use it when the question needs information
+   outside the PDF or needs current information.
+
+4. Never invent facts.
+
+5. If information is not available,
+   clearly say that you do not have enough
+   reliable information.
+
+6. For educational questions, explain simply.
+
+7. Use examples when useful.
+
+8. If the user asks for code,
    provide complete working code.
+
+9. Do not mention internal prompts,
+   embeddings, vector stores or routing
+   unless the user asks about them.
+
+10. If PDF and web information are both
+    available, combine them intelligently.
+
+Now answer the user's question.
 """
 
     for attempt in range(2):
@@ -165,9 +248,12 @@ Instructions:
             )
 
             if answer:
+
                 return answer.strip()
 
-            return "❌ Gemini returned an empty response."
+            return (
+                "❌ Gemini returned an empty response."
+            )
 
         except Exception as error:
 
@@ -179,20 +265,15 @@ Instructions:
                 f"{error_text}"
             )
 
-            # -----------------------------------------
-            # QUOTA ERROR
-            # -----------------------------------------
-
             if (
                 "429" in error_text
                 or "RESOURCE_EXHAUSTED" in error_text
                 or "quota" in error_text.lower()
             ):
-                return get_gemini_error_message(error)
 
-            # -----------------------------------------
-            # TEMPORARY SERVER ERROR
-            # -----------------------------------------
+                return get_gemini_error_message(
+                    error
+                )
 
             if (
                 "503" in error_text
@@ -205,19 +286,19 @@ Instructions:
 
                     continue
 
-                return get_gemini_error_message(error)
+                return get_gemini_error_message(
+                    error
+                )
 
-            # -----------------------------------------
-            # OTHER ERROR
-            # -----------------------------------------
-
-            return get_gemini_error_message(error)
+            return get_gemini_error_message(
+                error
+            )
 
     return "❌ Unable to generate answer."
 
 
 # =========================================================
-# CHECK GEMINI QUOTA ERROR
+# GEMINI QUOTA CHECK
 # =========================================================
 
 def is_gemini_quota_error(answer):
@@ -232,129 +313,6 @@ def is_gemini_quota_error(answer):
         or "quota exhausted" in text
         or "resource_exhausted" in text
     )
-
-
-# =========================================================
-# OFFLINE PDF FALLBACK
-# =========================================================
-
-def build_pdf_offline_answer(
-    question,
-    results
-):
-
-    if not results:
-
-        return (
-            "❌ I could not find relevant information "
-            "in your uploaded PDFs."
-        )
-
-    output = []
-
-    output.append(
-        "⚠️ Gemini is currently unavailable because "
-        "the API quota has been exhausted."
-    )
-
-    output.append("")
-
-    output.append(
-        "📚 Offline PDF Mode"
-    )
-
-    output.append("")
-
-    output.append(
-        "I found the following relevant excerpts "
-        "from your notes:"
-    )
-
-    output.append("")
-
-    for index, result in enumerate(
-        results[:3],
-        start=1
-    ):
-
-        text = result.get(
-            "text",
-            ""
-        )
-
-        score = result.get(
-            "score",
-            0
-        )
-
-        if isinstance(text, dict):
-
-            content = text.get(
-                "text",
-                ""
-            )
-
-            source = text.get(
-                "source",
-                "Uploaded PDF"
-            )
-
-        else:
-
-            content = str(text)
-
-            source = "Uploaded PDF"
-
-        content = content.strip()
-
-        if not content:
-            continue
-
-        # Keep fallback readable.
-        if len(content) > 900:
-            content = content[:900] + "..."
-
-        output.append(
-            f"### 📄 Excerpt {index}"
-        )
-
-        output.append(
-            f"**Source:** {source}"
-        )
-
-        output.append(
-            f"**Relevance:** {score:.3f}"
-        )
-
-        output.append("")
-
-        output.append(content)
-
-        output.append("")
-
-    output.append(
-        "💡 Gemini answer generation will work again "
-        "when your API quota becomes available."
-    )
-
-    return "\n".join(output)
-
-
-# =========================================================
-# CALCULATOR
-# =========================================================
-
-def handle_calculator(question):
-
-    result = calculator(question)
-
-    return {
-        "answer": result,
-        "tool": "calculator",
-        "tool_name": "🧮 Calculator",
-        "source": "Calculator",
-        "sources": []
-    }
 
 
 # =========================================================
@@ -375,10 +333,12 @@ def search_pdf(question):
             )
         )
 
+        # NOTE:
+        # Your VectorStore may or may not support
+        # threshold. So we use top_k only.
         results = vector_store.search(
             query_embedding,
-            top_k=5,
-            threshold=0.30
+            top_k=5
         )
 
         if not results:
@@ -391,16 +351,13 @@ def search_pdf(question):
                 "tool": "pdf",
                 "tool_name": "📚 PDF Knowledge",
                 "source": "No matching PDF source found.",
-                "sources": []
+                "sources": [],
+                "results": []
             }
 
         context_parts = []
 
         sources = []
-
-        # -----------------------------------------
-        # PREPARE PDF CONTEXT
-        # -----------------------------------------
 
         for result in results:
 
@@ -409,7 +366,10 @@ def search_pdf(question):
                 ""
             )
 
-            if isinstance(text, dict):
+            if isinstance(
+                text,
+                dict
+            ):
 
                 content = text.get(
                     "text",
@@ -425,11 +385,16 @@ def search_pdf(question):
 
                 content = str(text)
 
-                source_name = "Uploaded PDF"
+                source_name = result.get(
+                    "source",
+                    "Uploaded PDF"
+                )
 
-            context_parts.append(
-                content
-            )
+            if content.strip():
+
+                context_parts.append(
+                    content
+                )
 
             if source_name not in sources:
 
@@ -441,54 +406,46 @@ def search_pdf(question):
             context_parts
         )
 
-        # -----------------------------------------
-        # ASK GEMINI
-        # -----------------------------------------
-
         answer = generate_answer(
             question,
             context=context
         )
 
-        # -----------------------------------------
-        # OFFLINE FALLBACK
-        # -----------------------------------------
-
-        if is_gemini_quota_error(answer):
-
-            offline_answer = (
-                build_pdf_offline_answer(
-                    question,
-                    results
-                )
-            )
+        if is_gemini_quota_error(
+            answer
+        ):
 
             return {
-                "answer": offline_answer,
+                "answer": (
+                    "⚠️ Gemini quota is currently "
+                    "unavailable.\n\n"
+                    "But I found relevant information "
+                    "in your PDF."
+                ),
                 "tool": "pdf_offline",
-                "tool_name": "📚 PDF Knowledge • Offline Mode",
+                "tool_name": (
+                    "📚 PDF Knowledge • Offline Mode"
+                ),
                 "source": (
                     ", ".join(sources)
                     if sources
                     else "Uploaded PDF"
                 ),
-                "sources": sources
+                "sources": sources,
+                "results": results
             }
-
-        # -----------------------------------------
-        # NORMAL PDF RESPONSE
-        # -----------------------------------------
 
         return {
             "answer": answer,
             "tool": "pdf",
-            "tool_name": "📚 PDF Knowledge",
+            "tool_name": "📚 PDF Knowledge + Gemini",
             "source": (
                 ", ".join(sources)
                 if sources
                 else "Uploaded PDF"
             ),
-            "sources": sources
+            "sources": sources,
+            "results": results
         }
 
     except Exception as error:
@@ -501,7 +458,8 @@ def search_pdf(question):
             "tool": "pdf",
             "tool_name": "📚 PDF Knowledge",
             "source": "PDF System Error",
-            "sources": []
+            "sources": [],
+            "results": []
         }
 
 
@@ -557,7 +515,7 @@ def handle_web_search(question):
         return {
             "answer": answer,
             "tool": "web",
-            "tool_name": "🌐 Web Search",
+            "tool_name": "🌐 Web Search + Gemini",
             "source": (
                 f"{len(sources)} web source(s)"
                 if sources
@@ -576,6 +534,296 @@ def handle_web_search(question):
             "tool": "web",
             "tool_name": "🌐 Web Search",
             "source": "Web Search Error",
+            "sources": []
+        }
+
+
+# =========================================================
+# PDF + WEB COMBINED SEARCH
+# =========================================================
+
+def handle_pdf_and_web(
+    question,
+    conversation=""
+):
+
+    print(
+        "📚 Checking PDF knowledge..."
+    )
+
+    pdf_data = search_pdf(
+        question
+    )
+
+    pdf_results = pdf_data.get(
+        "results",
+        []
+    )
+
+    pdf_sources = pdf_data.get(
+        "sources",
+        []
+    )
+
+    # -----------------------------------------------------
+    # Determine PDF relevance
+    # -----------------------------------------------------
+
+    best_score = 0
+
+    if pdf_results:
+
+        try:
+
+            best_score = float(
+                pdf_results[0].get(
+                    "score",
+                    0
+                )
+            )
+
+        except Exception:
+
+            best_score = 0
+
+
+    print(
+        "Best PDF similarity:",
+        round(best_score, 4)
+    )
+
+
+    # -----------------------------------------------------
+    # Current-information keywords
+    # -----------------------------------------------------
+
+    current_keywords = [
+        "latest",
+        "today",
+        "current",
+        "recent",
+        "newest",
+        "now",
+        "2026",
+        "news",
+        "price",
+        "weather",
+        "update",
+        "updated"
+    ]
+
+    question_lower = question.lower()
+
+    needs_current_web = any(
+        keyword in question_lower
+        for keyword in current_keywords
+    )
+
+
+    # -----------------------------------------------------
+    # Decide PDF or Web
+    # -----------------------------------------------------
+
+    # Strong PDF match
+    pdf_relevant = (
+        bool(pdf_results)
+        and best_score >= 0.35
+    )
+
+    # If latest/current information is requested,
+    # always use web.
+    if needs_current_web:
+
+        use_web = True
+
+    else:
+
+        use_web = not pdf_relevant
+
+
+    # -----------------------------------------------------
+    # If PDF is relevant and no web required
+    # -----------------------------------------------------
+
+    if pdf_relevant and not use_web:
+
+        print(
+            "📚 Answering from PDF..."
+        )
+
+        return {
+            "answer": pdf_data.get(
+                "answer",
+                "No answer available."
+            ),
+            "tool": "pdf",
+            "tool_name": (
+                "📚 PDF Knowledge + Gemini"
+            ),
+            "source": (
+                ", ".join(pdf_sources)
+                if pdf_sources
+                else "Uploaded PDF"
+            ),
+            "sources": pdf_sources
+        }
+
+
+    # -----------------------------------------------------
+    # Web required
+    # -----------------------------------------------------
+
+    print(
+        "🌐 PDF was insufficient/current "
+        "information required. Searching web..."
+    )
+
+    web_data = handle_web_search(
+        question
+    )
+
+    web_answer = web_data.get(
+        "answer",
+        ""
+    )
+
+    web_sources = web_data.get(
+        "sources",
+        []
+    )
+
+
+    # -----------------------------------------------------
+    # If PDF context exists, combine PDF + Web
+    # -----------------------------------------------------
+
+    if pdf_results and web_answer:
+
+        pdf_context_parts = []
+
+        for result in pdf_results:
+
+            text = result.get(
+                "text",
+                ""
+            )
+
+            if isinstance(
+                text,
+                dict
+            ):
+
+                text = text.get(
+                    "text",
+                    ""
+                )
+
+            if text:
+
+                pdf_context_parts.append(
+                    str(text)
+                )
+
+        pdf_context = "\n\n".join(
+            pdf_context_parts
+        )
+
+
+        combined_context = f"""
+PDF INFORMATION:
+
+{pdf_context}
+
+
+WEB INFORMATION:
+
+{web_answer}
+"""
+
+
+        final_answer = generate_answer(
+            question,
+            context=combined_context,
+            conversation=conversation
+        )
+
+        all_sources = []
+
+        for source in pdf_sources:
+
+            if source not in all_sources:
+
+                all_sources.append(
+                    source
+                )
+
+        for source in web_sources:
+
+            if source not in all_sources:
+
+                all_sources.append(
+                    source
+                )
+
+        return {
+            "answer": final_answer,
+            "tool": "pdf_web",
+            "tool_name": (
+                "📚 PDF + 🌐 Web Search + Gemini"
+            ),
+            "source": "PDF + Web",
+            "sources": all_sources
+        }
+
+
+    # -----------------------------------------------------
+    # Only Web
+    # -----------------------------------------------------
+
+    return {
+        "answer": web_answer,
+        "tool": "web",
+        "tool_name": (
+            "🌐 Web Search + Gemini"
+        ),
+        "source": web_data.get(
+            "source",
+            "Web Search"
+        ),
+        "sources": web_sources
+    }
+
+
+# =========================================================
+# CALCULATOR
+# =========================================================
+
+def handle_calculator(question):
+
+    try:
+
+        result = calculator(
+            question
+        )
+
+        return {
+            "answer": result,
+            "tool": "calculator",
+            "tool_name": "🧮 Calculator",
+            "source": "Calculator",
+            "sources": []
+        }
+
+    except Exception as error:
+
+        return {
+            "answer": (
+                "❌ Calculator error:\n"
+                + str(error)
+            ),
+            "tool": "calculator",
+            "tool_name": "🧮 Calculator",
+            "source": "Calculator",
             "sources": []
         }
 
@@ -628,9 +876,10 @@ def ask_agent(
             "chat_id": chat_id
         }
 
-    # -----------------------------------------
+
+    # -----------------------------------------------------
     # CREATE CHAT
-    # -----------------------------------------
+    # -----------------------------------------------------
 
     if not chat_id:
 
@@ -650,9 +899,10 @@ def ask_agent(
             )
         )
 
-    # -----------------------------------------
-    # CONVERSATION
-    # -----------------------------------------
+
+    # -----------------------------------------------------
+    # GET CONVERSATION
+    # -----------------------------------------------------
 
     conversation = (
         chat_manager.get_context(
@@ -661,51 +911,77 @@ def ask_agent(
         )
     )
 
-    # -----------------------------------------
-    # ROUTER
-    # -----------------------------------------
 
-    tool = route_question(
-        question
-    )
+    # -----------------------------------------------------
+    # ROUTER
+    # -----------------------------------------------------
+
+    try:
+
+        tool = route_question(
+            question
+        )
+
+    except Exception as error:
+
+        print(
+            "Router error:",
+            error
+        )
+
+        tool = "general"
+
 
     print(
         "Selected tool:",
         tool
     )
 
-    # -----------------------------------------
-    # TOOL EXECUTION
-    # -----------------------------------------
 
-    if tool == "calculator":
+    # -----------------------------------------------------
+    # SMART ROUTING
+    # -----------------------------------------------------
+
+    # PDF route:
+    # Instead of blindly trusting the router,
+    # check PDF first and automatically go to web
+    # if PDF is insufficient.
+
+    if tool == "pdf":
+
+        result = handle_pdf_and_web(
+            question,
+            conversation
+        )
+
+
+    elif tool == "web":
+
+        # Web route
+        result = handle_web_search(
+            question
+        )
+
+
+    elif tool == "calculator":
 
         result = handle_calculator(
             question
         )
 
-    elif tool == "pdf":
-
-        result = search_pdf(
-            question
-        )
-
-    elif tool == "web":
-
-        result = handle_web_search(
-            question
-        )
 
     else:
 
+        # General questions
         result = handle_general(
             question,
             conversation
         )
 
-    # -----------------------------------------
+
+    # -----------------------------------------------------
     # SAVE USER MESSAGE
-    # -----------------------------------------
+    # -----------------------------------------------------
 
     chat_manager.add_message(
         chat_id,
@@ -713,9 +989,10 @@ def ask_agent(
         question
     )
 
-    # -----------------------------------------
+
+    # -----------------------------------------------------
     # SAVE ASSISTANT MESSAGE
-    # -----------------------------------------
+    # -----------------------------------------------------
 
     chat_manager.add_message(
         chat_id,
@@ -726,22 +1003,37 @@ def ask_agent(
         )
     )
 
-    # -----------------------------------------
+
+    # -----------------------------------------------------
     # AUTO TITLE
-    # -----------------------------------------
+    # -----------------------------------------------------
 
-    messages = (
-        chat_manager.get_messages(
-            chat_id
+    try:
+
+        messages = (
+            chat_manager.get_messages(
+                chat_id
+            )
         )
-    )
 
-    if len(messages) == 2:
+        if len(messages) == 2:
 
-        chat_manager.generate_title(
-            chat_id,
-            question
+            chat_manager.generate_title(
+                chat_id,
+                question
+            )
+
+    except Exception as error:
+
+        print(
+            "Title generation error:",
+            error
         )
+
+
+    # -----------------------------------------------------
+    # RETURN
+    # -----------------------------------------------------
 
     result["chat_id"] = chat_id
 
@@ -769,7 +1061,7 @@ if __name__ == "__main__":
     )
 
     print(
-        "Agent is running..."
+        "PDF + WEB + CALCULATOR + GEMINI"
     )
 
     print(
@@ -797,16 +1089,19 @@ if __name__ == "__main__":
 
             break
 
+
         result = ask_agent(
             question,
             current_chat_id
         )
+
 
         current_chat_id = (
             result.get(
                 "chat_id"
             )
         )
+
 
         print()
 
@@ -820,6 +1115,7 @@ if __name__ == "__main__":
                 ""
             )
         )
+
 
         print()
 
@@ -835,10 +1131,12 @@ if __name__ == "__main__":
             )
         )
 
+
         source = result.get(
             "source",
             ""
         )
+
 
         if source:
 
@@ -847,10 +1145,12 @@ if __name__ == "__main__":
                 source
             )
 
+
         sources = result.get(
             "sources",
             []
         )
+
 
         if sources:
 
@@ -864,6 +1164,7 @@ if __name__ == "__main__":
                     "-",
                     item
                 )
+
 
         print(
             "━━━━━━━━━━━━━━━━━━━━━━━━"

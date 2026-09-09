@@ -1,25 +1,29 @@
-def calculator(expression: str) -> str:
-    """
-    Calculate a mathematical expression.
-    Use this tool when the user asks for a calculation.
-    """
+import os
+from tavily import TavilyClient
+from dotenv import load_dotenv
 
-    try:
-        allowed = "0123456789+-*/().% "
+load_dotenv()
 
-        if not all(
-            char in allowed
-            for char in expression
-        ):
-            return "Invalid mathematical expression."
+def web_search(query):
+    api_key = os.getenv("TAVILY_API_KEY")
 
-        result = eval(
-            expression,
-            {"__builtins__": {}},
-            {}
+    if not api_key:
+        return "Web search API key is missing."
+
+    tavily = TavilyClient(api_key=api_key)
+
+    response = tavily.search(
+        query=query,
+        max_results=5
+    )
+
+    results = []
+
+    for result in response.get("results", []):
+        results.append(
+            f"Title: {result.get('title')}\n"
+            f"Content: {result.get('content')}\n"
+            f"URL: {result.get('url')}"
         )
 
-        return str(result)
-
-    except Exception as e:
-        return f"Calculation error: {e}"
+    return "\n\n".join(results)
