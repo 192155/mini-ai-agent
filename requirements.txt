@@ -3,4 +3,3 @@ pydantic
 google-genai
 python-dotenv
 tavily-python
-sentence-transformers

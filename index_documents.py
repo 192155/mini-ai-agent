@@ -6,14 +6,25 @@ from embeddings import EmbeddingModel
 from vector_store import VectorStore
 
 
+# ==========================================
+# CONFIGURATION
+# ==========================================
+
 DOCUMENTS_FOLDER = "documents"
+
 VECTOR_STORE_PATH = "data/all_vectors.pkl"
 
 CHUNK_SIZE = 1000
+
 CHUNK_OVERLAP = 150
 
 
+# ==========================================
+# PDF TEXT EXTRACTION
+# ==========================================
+
 def extract_text_from_pdf(pdf_path):
+
     reader = PdfReader(pdf_path)
 
     pages = []
@@ -23,21 +34,28 @@ def extract_text_from_pdf(pdf_path):
         text = page.extract_text()
 
         if text:
+
             pages.append(text)
 
     return "\n".join(pages)
 
+
+# ==========================================
+# TEXT CHUNKING
+# ==========================================
 
 def create_chunks(text):
 
     text = text.strip()
 
     if not text:
+
         return []
 
     chunks = []
 
     start = 0
+
     text_length = len(text)
 
     while start < text_length:
@@ -47,9 +65,11 @@ def create_chunks(text):
         chunk = text[start:end].strip()
 
         if chunk:
+
             chunks.append(chunk)
 
         if end >= text_length:
+
             break
 
         start = end - CHUNK_OVERLAP
@@ -57,13 +77,25 @@ def create_chunks(text):
     return chunks
 
 
+# ==========================================
+# MAIN INDEXING FUNCTION
+# ==========================================
+
 def main():
 
     print()
+
     print("======================================")
+
     print("       PDF INDEXING SYSTEM")
+
     print("======================================")
+
     print()
+
+    # --------------------------------------
+    # Create required folders
+    # --------------------------------------
 
     os.makedirs(
         DOCUMENTS_FOLDER,
@@ -75,16 +107,36 @@ def main():
         exist_ok=True
     )
 
+    # --------------------------------------
+    # Find PDF files
+    # --------------------------------------
+
     pdf_files = [
+
         file
-        for file in os.listdir(DOCUMENTS_FOLDER)
+
+        for file in os.listdir(
+            DOCUMENTS_FOLDER
+        )
+
         if file.lower().endswith(".pdf")
+
     ]
 
     if not pdf_files:
 
         print(
             "❌ No PDF files found in documents folder."
+        )
+
+        print()
+
+        print(
+            "Please put your PDF files inside:"
+        )
+
+        print(
+            f"   {DOCUMENTS_FOLDER}"
         )
 
         return
@@ -95,11 +147,39 @@ def main():
 
     print()
 
+    # --------------------------------------
+    # Load Gemini Embedding Model
+    # --------------------------------------
+
+    print(
+        "🤖 Loading Gemini Embedding Model..."
+    )
+
     embedding_model = EmbeddingModel()
+
+    print()
+
+    # --------------------------------------
+    # Create Vector Store
+    # --------------------------------------
+
+    print(
+        "🗄️ Creating vector store..."
+    )
 
     vector_store = VectorStore()
 
+    print()
+
     total_chunks = 0
+
+    successful_pdfs = 0
+
+    failed_pdfs = 0
+
+    # ======================================
+    # PROCESS EACH PDF
+    # ======================================
 
     for pdf_file in pdf_files:
 
@@ -109,25 +189,41 @@ def main():
         )
 
         print(
+            "--------------------------------------"
+        )
+
+        print(
             f"📖 Processing: {pdf_file}"
         )
 
+        print(
+            "--------------------------------------"
+        )
+
         try:
+
+            # --------------------------------
+            # Extract PDF text
+            # --------------------------------
 
             text = extract_text_from_pdf(
                 pdf_path
             )
 
             print(
-                f"   Characters: {len(text)}"
+                f"   📝 Characters: {len(text)}"
             )
+
+            # --------------------------------
+            # Create chunks
+            # --------------------------------
 
             chunks = create_chunks(
                 text
             )
 
             print(
-                f"   Chunks: {len(chunks)}"
+                f"   🧩 Chunks: {len(chunks)}"
             )
 
             if not chunks:
@@ -136,7 +232,15 @@ def main():
                     "   ⚠️ No readable text found."
                 )
 
+                failed_pdfs += 1
+
+                print()
+
                 continue
+
+            # --------------------------------
+            # Create document objects
+            # --------------------------------
 
             documents = []
 
@@ -149,15 +253,18 @@ def main():
                     }
                 )
 
-            texts_for_embedding = [
-                item["text"]
-                for item in documents
-            ]
+            # --------------------------------
+            # Create embeddings
+            # --------------------------------
 
             embeddings = []
 
+            print(
+                "   🧠 Creating embeddings..."
+            )
+
             for index, chunk in enumerate(
-                texts_for_embedding,
+                chunks,
                 start=1
             ):
 
@@ -171,12 +278,14 @@ def main():
                     embedding
                 )
 
-                if index % 10 == 0:
+                print(
+                    f"   Embedding "
+                    f"{index}/{len(chunks)}"
+                )
 
-                    print(
-                        f"   Embeddings: "
-                        f"{index}/{len(chunks)}"
-                    )
+            # --------------------------------
+            # Add to vector store
+            # --------------------------------
 
             vector_store.add_documents(
                 documents,
@@ -187,28 +296,53 @@ def main():
                 documents
             )
 
+            successful_pdfs += 1
+
+            print()
+
             print(
-                f"   ✅ {pdf_file} indexed."
+                f"   ✅ {pdf_file} indexed successfully."
             )
 
             print()
 
         except Exception as e:
 
+            failed_pdfs += 1
+
+            print()
+
             print(
-                f"   ❌ Error processing "
-                f"{pdf_file}:"
+                f"   ❌ Error processing {pdf_file}"
             )
 
             print(
-                f"   {e}"
+                f"   Error: {e}"
             )
 
             print()
 
+    # ======================================
+    # SAVE VECTOR STORE
+    # ======================================
+
+    print(
+        "======================================"
+    )
+
+    print(
+        "💾 Saving vector store..."
+    )
+
     vector_store.save(
         VECTOR_STORE_PATH
     )
+
+    print()
+
+    # ======================================
+    # FINAL RESULT
+    # ======================================
 
     print(
         "======================================"
@@ -219,7 +353,19 @@ def main():
     )
 
     print(
-        f"📚 PDFs: {len(pdf_files)}"
+        "======================================"
+    )
+
+    print(
+        f"📚 Total PDFs found: {len(pdf_files)}"
+    )
+
+    print(
+        f"✅ Successful PDFs: {successful_pdfs}"
+    )
+
+    print(
+        f"❌ Failed PDFs: {failed_pdfs}"
     )
 
     print(
@@ -234,6 +380,18 @@ def main():
         "======================================"
     )
 
+    print()
+
+    print(
+        "🎉 Your PDF knowledge base is ready!"
+    )
+
+    print()
+
+
+# ==========================================
+# PROGRAM START
+# ==========================================
 
 if __name__ == "__main__":
 
