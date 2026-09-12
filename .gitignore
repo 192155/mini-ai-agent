@@ -1,34 +1,17 @@
-# Environment variables / secrets
+# Environment / secrets
 .env
+.env.local
+.env.*
+!.env.example
 
 # Python
-__pycache__/
-*.py[cod]
-*.pyo
-
-# Virtual environment
-venv/
 .venv/
-env/
+venv/
+__pycache__/
+*.pyc
 
-# Local data
-data/*.pkl
-data/chats.json
+# Vercel
+.vercel/
 
-# Audio
-*.wav
-*.mp3
-*.ogg
-
-# IDE
-.vscode/
-.idea/
-
-# OS
-.DS_Store
-Thumbs.db
-
-# Streamlit
-.streamlit/secrets.toml
-.vercel
-.env*
+# Local generated data
+data/
