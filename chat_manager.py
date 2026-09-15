@@ -4,8 +4,7 @@ import uuid
 from datetime import datetime
 
 
-CHAT_FILE = "data/chats.json"
-
+CHAT_FILE = "/tmp/chats.json" if os.getenv("VERCEL") else "data/chats.json"
 
 class ChatManager:
 
