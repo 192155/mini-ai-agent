@@ -1,23 +1,43 @@
 import os
+import uuid
+import requests
 import streamlit as st
+from dotenv import load_dotenv
 
-from chat_manager import ChatManager
-from agent import ask_agent
-from voice_transcriber import transcribe_audio
-from voice_output import text_to_speech, get_available_voices
-from image_analyzer import analyze_image
+# Load local environment variables
+load_dotenv()
 
+# =========================================================
+# CONFIGURATION
+# =========================================================
+
+VERCEL_API_URL = "https://mini-ai-agent-pi.vercel.app/api/chat"
+
+APP_TITLE = "Mini AI Agent"
 
 # =========================================================
 # PAGE CONFIG
 # =========================================================
 
 st.set_page_config(
-    page_title="Mini AI Agent",
+    page_title=APP_TITLE,
     page_icon="🤖",
     layout="wide",
     initial_sidebar_state="expanded"
 )
+
+# =========================================================
+# SESSION STATE
+# =========================================================
+
+if "chat_id" not in st.session_state:
+    st.session_state.chat_id = str(uuid.uuid4())
+
+if "messages" not in st.session_state:
+    st.session_state.messages = []
+
+if "processing" not in st.session_state:
+    st.session_state.processing = False
 
 
 # =========================================================
@@ -28,114 +48,36 @@ st.markdown(
     """
     <style>
 
-    .stApp {
-        background:
-        linear-gradient(
-            135deg,
-            #0f172a 0%,
-            #111827 50%,
-            #020617 100%
-        );
+    .main-title {
+        font-size: 38px;
+        font-weight: 800;
+        margin-bottom: 0px;
     }
 
-    .block-container {
-        max-width: 1250px;
-        padding-top: 2rem;
-        padding-bottom: 3rem;
-    }
-
-    .hero {
-        padding: 30px;
-        border-radius: 24px;
-        background:
-        linear-gradient(
-            135deg,
-            rgba(30,41,59,0.95),
-            rgba(15,23,42,0.95)
-        );
-        border: 1px solid
-        rgba(255,255,255,0.08);
-        box-shadow:
-        0 20px 50px
-        rgba(0,0,0,0.25);
+    .subtitle {
+        color: #777;
+        font-size: 16px;
+        margin-top: 0px;
         margin-bottom: 25px;
     }
 
-    .hero h1 {
-        font-size: 42px;
-        margin: 0;
-        font-weight: 800;
-    }
-
-    .hero p {
-        color: #94a3b8;
-        font-size: 16px;
-        margin-top: 10px;
-    }
-
-    .tool-card {
-        padding: 14px 18px;
-        border-radius: 15px;
-        background:
-        rgba(255,255,255,0.045);
-        border:
-        1px solid
-        rgba(255,255,255,0.08);
-        margin-top: 12px;
+    .status-box {
+        padding: 12px;
+        border-radius: 10px;
+        border: 1px solid #ddd;
         margin-bottom: 10px;
     }
 
-    .source-card {
-        padding: 14px 18px;
-        border-radius: 15px;
-        background:
-        rgba(255,255,255,0.035);
-        border:
-        1px solid
-        rgba(255,255,255,0.06);
-        margin-top: 8px;
-        margin-bottom: 8px;
-    }
-
-    .status-card {
+    .feature-box {
         padding: 15px;
-        border-radius: 15px;
-        background:
-        rgba(255,255,255,0.04);
-        border:
-        1px solid
-        rgba(255,255,255,0.07);
-        text-align: center;
-        min-height: 90px;
-    }
-
-    .footer {
-        text-align: center;
-        color: #64748b;
-        margin-top: 45px;
-        padding: 25px;
-        border-top:
-        1px solid
-        rgba(255,255,255,0.06);
-    }
-
-    section[data-testid="stSidebar"] {
-        background:
-        linear-gradient(
-            180deg,
-            #0f172a,
-            #020617
-        );
-    }
-
-    .stButton button {
         border-radius: 12px;
-        font-weight: 600;
-        transition: 0.2s;
+        border: 1px solid #ddd;
+        margin-bottom: 12px;
     }
 
-    textarea {
-        border-radius: 15px !important;
+    .small-text {
+        font-size: 13px;
+        color: #777;
     }
 
     </style>
@@ -145,91 +87,184 @@ st.markdown(
 
 
 # =========================================================
-# CHAT MANAGER
-# =========================================================
-
-@st.cache_resource
-def load_chat_manager():
-    return ChatManager()
-
-
-chat_manager = load_chat_manager()
-
-
-# =========================================================
-# SESSION STATE
-# =========================================================
-
-if "chat_id" not in st.session_state:
-
-    st.session_state.chat_id = (
-        chat_manager.create_chat(
-            "New Chat"
-        )
-    )
-
-
-if "voice_enabled" not in st.session_state:
-
-    st.session_state.voice_enabled = True
-
-
-if "voice_rate" not in st.session_state:
-
-    st.session_state.voice_rate = 0
-
-
-if "voice_volume" not in st.session_state:
-
-    st.session_state.voice_volume = 100
-
-
-if "selected_voice" not in st.session_state:
-
-    st.session_state.selected_voice = None
-
-
-if "quick_prompt" not in st.session_state:
-
-    st.session_state.quick_prompt = ""
-
-
-if "gemini_status" not in st.session_state:
-
-    st.session_state.gemini_status = "Configured"
-
-
-# =========================================================
-# CURRENT CHAT
-# =========================================================
-
-def load_current_chat():
-
-    return chat_manager.get_messages(
-        st.session_state.chat_id
-    )
-
-
-# =========================================================
-# HERO
+# HEADER
 # =========================================================
 
 st.markdown(
-    """
-    <div class="hero">
-
-        <h1>🤖 Mini AI Agent</h1>
-
-        <p>
-        Intelligent AI assistant with
-        PDF Knowledge • Web Search • Calculator
-        • Voice • Image Analysis • Memory
-        </p>
-
-    </div>
-    """,
+    '<div class="main-title">🤖 Mini AI Agent</div>',
     unsafe_allow_html=True
 )
+
+st.markdown(
+    '<div class="subtitle">Your personal AI assistant powered by Gemini AI</div>',
+    unsafe_allow_html=True
+)
+
+
+# =========================================================
+# FUNCTIONS
+# =========================================================
+
+def clear_chat():
+    """
+    Clear the current local chat display
+    and create a new chat ID.
+    """
+    st.session_state.messages = []
+    st.session_state.chat_id = str(uuid.uuid4())
+    st.session_state.processing = False
+
+
+def ask_vercel_api(question):
+    """
+    Send the user's question to the deployed
+    Mini AI Agent API on Vercel.
+    """
+
+    try:
+
+        response = requests.post(
+            VERCEL_API_URL,
+            json={
+                "question": question,
+                "chat_id": st.session_state.chat_id
+            },
+            timeout=60
+        )
+
+        # -------------------------------------------------
+        # Successful HTTP response
+        # -------------------------------------------------
+
+        if response.status_code == 200:
+
+            try:
+                result = response.json()
+            except Exception:
+                return {
+                    "success": False,
+                    "answer": "❌ API returned an invalid response.",
+                    "tool": "error",
+                    "tool_name": "Vercel API",
+                    "source": "Vercel",
+                    "sources": []
+                }
+
+            return result
+
+        # -------------------------------------------------
+        # API error
+        # -------------------------------------------------
+
+        return {
+            "success": False,
+            "answer": (
+                f"❌ Vercel API Error: {response.status_code}\n\n"
+                f"{response.text}"
+            ),
+            "tool": "error",
+            "tool_name": "Vercel API",
+            "source": "Vercel",
+            "sources": []
+        }
+
+    except requests.exceptions.Timeout:
+
+        return {
+            "success": False,
+            "answer": (
+                "⏱️ The AI server took too long to respond.\n\n"
+                "Please try again."
+            ),
+            "tool": "error",
+            "tool_name": "Vercel API",
+            "source": "Vercel",
+            "sources": []
+        }
+
+    except requests.exceptions.ConnectionError:
+
+        return {
+            "success": False,
+            "answer": (
+                "🌐 Could not connect to the AI server.\n\n"
+                "Please check your internet connection and try again."
+            ),
+            "tool": "error",
+            "tool_name": "Vercel API",
+            "source": "Vercel",
+            "sources": []
+        }
+
+    except Exception as e:
+
+        return {
+            "success": False,
+            "answer": f"❌ Unexpected error:\n\n{str(e)}",
+            "tool": "error",
+            "tool_name": "Vercel API",
+            "source": "Vercel",
+            "sources": []
+        }
+
+
+def process_question(question):
+
+    question = question.strip()
+
+    if not question:
+        return
+
+    # Add user message
+    st.session_state.messages.append(
+        {
+            "role": "user",
+            "content": question
+        }
+    )
+
+    st.session_state.processing = True
+
+    # -----------------------------------------------------
+    # Call Vercel API
+    # -----------------------------------------------------
+
+    result = ask_vercel_api(question)
+
+    # -----------------------------------------------------
+    # Extract answer
+    # -----------------------------------------------------
+
+    answer = result.get(
+        "answer",
+        "❌ No answer received from the AI."
+    )
+
+    # Update chat ID if API returns one
+    returned_chat_id = result.get("chat_id")
+
+    if returned_chat_id:
+        st.session_state.chat_id = returned_chat_id
+
+    # -----------------------------------------------------
+    # Add assistant message
+    # -----------------------------------------------------
+
+    st.session_state.messages.append(
+        {
+            "role": "assistant",
+            "content": answer,
+            "tool": result.get("tool", "general"),
+            "tool_name": result.get(
+                "tool_name",
+                "🤖 Gemini AI"
+            ),
+            "source": result.get("source", ""),
+            "sources": result.get("sources", [])
+        }
+    )
+
+    st.session_state.processing = False
 
 
 # =========================================================
@@ -238,260 +273,227 @@ st.markdown(
 
 with st.sidebar:
 
-    st.title("⚙️ Control Panel")
+    st.header("⚙️ Mini AI Agent")
 
+    st.markdown("---")
 
     # -----------------------------------------------------
-    # NEW CHAT
+    # New Chat
     # -----------------------------------------------------
 
     if st.button(
         "➕ New Chat",
         use_container_width=True
     ):
-
-        new_chat_id = (
-            chat_manager.create_chat(
-                "New Chat"
-            )
-        )
-
-        st.session_state.chat_id = (
-            new_chat_id
-        )
-
+        clear_chat()
         st.rerun()
 
-
-    st.divider()
-
+    st.markdown("---")
 
     # -----------------------------------------------------
-    # CHAT HISTORY
+    # Quick Prompts
     # -----------------------------------------------------
 
-    st.subheader("💬 Chat History")
-
-    chats = chat_manager.get_all_chats()
-
-    if chats:
-
-        for chat in reversed(chats):
-
-            chat_id = chat.get("id")
-
-            title = chat.get(
-                "title",
-                "New Chat"
-            )
-
-            if st.button(
-                title,
-                key=f"history_{chat_id}",
-                use_container_width=True
-            ):
-
-                st.session_state.chat_id = (
-                    chat_id
-                )
-
-                st.rerun()
-
-    else:
-
-        st.caption(
-            "No chats yet."
-        )
-
-
-    st.divider()
-
-
-    # -----------------------------------------------------
-    # VOICE SETTINGS
-    # -----------------------------------------------------
-
-    st.subheader("🎙️ Voice Settings")
-
-
-    st.session_state.voice_enabled = (
-        st.toggle(
-            "🔊 Voice Output",
-            value=st.session_state.voice_enabled
-        )
-    )
-
-
-    st.session_state.voice_rate = (
-        st.slider(
-            "Voice Speed",
-            min_value=-5,
-            max_value=5,
-            value=st.session_state.voice_rate
-        )
-    )
-
-
-    st.session_state.voice_volume = (
-        st.slider(
-            "Voice Volume",
-            min_value=0,
-            max_value=100,
-            value=st.session_state.voice_volume
-        )
-    )
-
-
-    voices = get_available_voices()
-
-
-    if voices:
-
-        voice_options = [
-            "Default"
-        ] + voices
-
-        selected_voice = st.selectbox(
-            "🗣️ Windows Voice",
-            voice_options
-        )
-
-        if selected_voice == "Default":
-
-            st.session_state.selected_voice = (
-                None
-            )
-
-        else:
-
-            st.session_state.selected_voice = (
-                selected_voice
-            )
-
-    else:
-
-        st.info(
-            "No Windows speech voices detected."
-        )
-
-
-    st.divider()
-
-
-    # -----------------------------------------------------
-    # QUICK PROMPTS
-    # -----------------------------------------------------
-
-    st.subheader("⚡ Quick Prompts")
-
+    st.subheader("⚡ Quick Questions")
 
     quick_prompts = [
-
-        "Explain machine learning",
-
-        "Explain inheritance in Java",
-
-        "What is normalization in DBMS?",
-
-        "What is the latest Python version?"
-
+        "Explain Java OOP in simple language",
+        "What is DBMS?",
+        "Explain Artificial Intelligence",
+        "What is Machine Learning?",
+        "Calculate 125 × 48",
+        "What is Agile methodology?"
     ]
 
-
-    for index, prompt in enumerate(
-        quick_prompts
-    ):
+    for prompt in quick_prompts:
 
         if st.button(
             prompt,
-            key=f"quick_prompt_{index}",
             use_container_width=True
         ):
 
-            st.session_state.quick_prompt = (
-                prompt
-            )
-
+            process_question(prompt)
             st.rerun()
 
-
-    st.divider()
-
+    st.markdown("---")
 
     # -----------------------------------------------------
-    # CHAT MANAGEMENT
+    # System Status
     # -----------------------------------------------------
 
-    st.subheader("🗑️ Chat Management")
+    st.subheader("📡 System Status")
+
+    st.markdown(
+        """
+        <div class="status-box">
+        🟢 <b>Vercel API</b><br>
+        <span class="small-text">Connected</span>
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
+
+    st.markdown(
+        """
+        <div class="status-box">
+        🤖 <b>Gemini AI</b><br>
+        <span class="small-text">Online</span>
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
+
+    if os.getenv("TAVILY_API_KEY"):
+
+        st.markdown(
+            """
+            <div class="status-box">
+            🌐 <b>Web Search</b><br>
+            <span class="small-text">Configured</span>
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
+
+    else:
+
+        st.markdown(
+            """
+            <div class="status-box">
+            🌐 <b>Web Search</b><br>
+            <span class="small-text">Local key not detected</span>
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
+
+    st.markdown("---")
+
+    # -----------------------------------------------------
+    # Project Information
+    # -----------------------------------------------------
+
+    st.subheader("📚 Features")
+
+    st.markdown(
+        """
+        <div class="feature-box">
+        🤖 <b>Gemini AI</b><br>
+        <span class="small-text">
+        Intelligent AI responses
+        </span>
+        </div>
+
+        <div class="feature-box">
+        🌐 <b>Web Search</b><br>
+        <span class="small-text">
+        Search current information
+        </span>
+        </div>
+
+        <div class="feature-box">
+        📄 <b>PDF RAG</b><br>
+        <span class="small-text">
+        Answer questions from documents
+        </span>
+        </div>
+
+        <div class="feature-box">
+        🧮 <b>Calculator</b><br>
+        <span class="small-text">
+        Perform mathematical calculations
+        </span>
+        </div>
+
+        <div class="feature-box">
+        💬 <b>Chat Memory</b><br>
+        <span class="small-text">
+        Maintain conversation context
+        </span>
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
+
+    st.markdown("---")
+
+    st.caption(
+        "Mini AI Agent • CSE-AIML Project"
+    )
 
 
-    col1, col2 = st.columns(2)
+# =========================================================
+# MAIN CHAT AREA
+# =========================================================
 
+if not st.session_state.messages:
+
+    st.markdown("## 👋 Hello!")
+
+    st.write(
+        "I'm your Mini AI Agent. Ask me anything!"
+    )
+
+    st.markdown("---")
+
+    st.subheader("💡 Try asking")
+
+    col1, col2, col3 = st.columns(3)
 
     with col1:
 
         if st.button(
-            "Clear",
+            "☕ Explain Java",
             use_container_width=True
         ):
 
-            chat_manager.clear_chat(
-                st.session_state.chat_id
+            process_question(
+                "Explain Java in simple language"
             )
 
             st.rerun()
-
 
     with col2:
 
         if st.button(
-            "Delete",
+            "📚 What is DBMS?",
             use_container_width=True
         ):
 
-            chat_manager.delete_chat(
-                st.session_state.chat_id
+            process_question(
+                "Explain DBMS in simple language"
             )
 
-            new_chat_id = (
-                chat_manager.create_chat(
-                    "New Chat"
-                )
-            )
+            st.rerun()
 
-            st.session_state.chat_id = (
-                new_chat_id
+    with col3:
+
+        if st.button(
+            "🤖 What is AI?",
+            use_container_width=True
+        ):
+
+            process_question(
+                "What is Artificial Intelligence?"
             )
 
             st.rerun()
 
 
 # =========================================================
-# DISPLAY EXISTING CHAT
+# DISPLAY CHAT HISTORY
 # =========================================================
 
-messages = load_current_chat()
+for message in st.session_state.messages:
 
-
-for message in messages:
-
-    role = message.get(
-        "role",
-        "assistant"
-    )
-
-    content = message.get(
-        "content",
-        ""
-    )
-
+    role = message.get("role", "assistant")
 
     if role == "user":
 
         with st.chat_message("user"):
 
             st.markdown(
-                content
+                message.get("content", "")
             )
 
     else:
@@ -499,602 +501,94 @@ for message in messages:
         with st.chat_message("assistant"):
 
             st.markdown(
-                content
+                message.get("content", "")
             )
 
+            # ---------------------------------------------
+            # Tool information
+            # ---------------------------------------------
 
-# =========================================================
-# RESULT DETAILS
-# =========================================================
+            tool_name = message.get("tool_name")
 
-def display_result_details(result):
+            if tool_name:
 
-    tool_name = result.get(
-        "tool_name",
-        "🤖 Gemini AI"
-    )
-
-
-    source = result.get(
-        "source",
-        ""
-    )
-
-
-    sources = result.get(
-        "sources",
-        []
-    )
-
-
-    tool = result.get(
-        "tool",
-        "general"
-    )
-
-
-    # -----------------------------------------------------
-    # TOOL
-    # -----------------------------------------------------
-
-    st.markdown(
-        f"""
-        <div class="tool-card">
-
-        🧠 <b>Tool Used:</b>
-        {tool_name}
-
-        </div>
-        """,
-        unsafe_allow_html=True
-    )
-
-
-    # -----------------------------------------------------
-    # SOURCE
-    # -----------------------------------------------------
-
-    if source:
-
-        st.markdown(
-            f"""
-            <div class="source-card">
-
-            📄 <b>Source:</b>
-            {source}
-
-            </div>
-            """,
-            unsafe_allow_html=True
-        )
-
-
-    # -----------------------------------------------------
-    # PDF SOURCES
-    # -----------------------------------------------------
-
-    if sources and tool in [
-        "pdf",
-        "pdf_offline"
-    ]:
-
-        st.markdown(
-            """
-            <div class="source-card">
-
-            📚 <b>PDF Sources</b>
-
-            </div>
-            """,
-            unsafe_allow_html=True
-        )
-
-
-        for pdf_source in sources:
-
-            st.markdown(
-                f"📄 `{pdf_source}`"
-            )
-
-
-    # -----------------------------------------------------
-    # WEB SOURCES
-    # -----------------------------------------------------
-
-    elif sources and tool == "web":
-
-        st.markdown(
-            """
-            <div class="source-card">
-
-            🌐 <b>Web Sources</b>
-
-            </div>
-            """,
-            unsafe_allow_html=True
-        )
-
-
-        for url in sources:
-
-            st.markdown(
-                f"- {url}"
-            )
-
-
-# =========================================================
-# PROCESS QUESTION
-# =========================================================
-
-def process_question(question):
-
-    question = (
-        question or ""
-    ).strip()
-
-
-    if not question:
-
-        return
-
-
-    # -----------------------------------------------------
-    # USER MESSAGE
-    # -----------------------------------------------------
-
-    with st.chat_message("user"):
-
-        st.markdown(
-            question
-        )
-
-
-    # -----------------------------------------------------
-    # ASSISTANT
-    # -----------------------------------------------------
-
-    with st.chat_message("assistant"):
-
-        with st.spinner(
-            "🧠 Thinking..."
-        ):
-
-            result = ask_agent(
-                question,
-                st.session_state.chat_id
-            )
-
-
-        answer = result.get(
-            "answer",
-            "No answer returned."
-        )
-
-
-        st.markdown(
-            answer
-        )
-
-
-        display_result_details(
-            result
-        )
-
-
-        # -------------------------------------------------
-        # UPDATE GEMINI STATUS
-        # -------------------------------------------------
-
-        answer_lower = answer.lower()
-
-
-        if (
-            "quota exhausted" in answer_lower
-            or "resource_exhausted" in answer_lower
-        ):
-
-            st.session_state.gemini_status = (
-                "Quota Limited"
-            )
-
-        elif (
-            "gemini api error" in answer_lower
-            or "gemini api key problem" in answer_lower
-        ):
-
-            st.session_state.gemini_status = (
-                "Error"
-            )
-
-        else:
-
-            st.session_state.gemini_status = (
-                "Online"
-            )
-
-
-        # -------------------------------------------------
-        # VOICE OUTPUT
-        # -------------------------------------------------
-
-        if st.session_state.voice_enabled:
-
-            with st.spinner(
-                "🔊 Generating voice..."
-            ):
-
-                success, audio_result = (
-                    text_to_speech(
-                        answer,
-                        rate=st.session_state.voice_rate,
-                        volume=st.session_state.voice_volume,
-                        voice_name=st.session_state.selected_voice
-                    )
+                st.caption(
+                    f"🔧 {tool_name}"
                 )
 
+            # ---------------------------------------------
+            # Source information
+            # ---------------------------------------------
 
-            if success:
+            source = message.get("source")
 
-                st.audio(
-                    audio_result,
-                    format="audio/wav"
+            if source:
+
+                st.caption(
+                    f"📌 Source: {source}"
                 )
 
-            else:
+            # ---------------------------------------------
+            # Sources
+            # ---------------------------------------------
 
-                st.warning(
-                    f"Voice output failed: {audio_result}"
-                )
+            sources = message.get("sources")
 
+            if sources:
 
-    # -----------------------------------------------------
-    # UPDATE CHAT ID
-    # -----------------------------------------------------
+                with st.expander("🔗 Sources"):
 
-    new_chat_id = result.get(
-        "chat_id"
-    )
+                    if isinstance(sources, list):
 
+                        for item in sources:
 
-    if new_chat_id:
+                            st.write(
+                                str(item)
+                            )
 
-        st.session_state.chat_id = (
-            new_chat_id
-        )
+                    elif isinstance(sources, dict):
+
+                        for key, value in sources.items():
+
+                            st.write(
+                                f"**{key}:** {value}"
+                            )
+
+                    else:
+
+                        st.write(
+                            str(sources)
+                        )
 
 
 # =========================================================
-# TEXT CHAT INPUT
+# CHAT INPUT
 # =========================================================
-
-quick_prompt = (
-    st.session_state.quick_prompt
-)
-
-st.session_state.quick_prompt = ""
-
 
 chat_input = st.chat_input(
     "Ask Mini AI Agent anything..."
 )
 
-
 if chat_input:
 
-    process_question(
-        chat_input
-    )
+    process_question(chat_input)
 
-elif quick_prompt:
-
-    process_question(
-        quick_prompt
-    )
-
-
-# =========================================================
-# VOICE INPUT
-# =========================================================
-
-st.divider()
-
-st.subheader(
-    "🎙️ Voice Input"
-)
-
-
-audio_value = st.audio_input(
-    "Speak to Mini AI Agent"
-)
-
-
-if audio_value:
-
-    with st.spinner(
-        "🎧 Understanding your voice..."
-    ):
-
-        try:
-
-            audio_bytes = (
-                audio_value.getvalue()
-            )
-
-            transcript = transcribe_audio(
-                audio_bytes,
-                "wav"
-            )
-
-        except Exception as error:
-
-            transcript = (
-                "❌ Voice processing failed: "
-                + str(error)
-            )
-
-
-    if transcript.startswith("❌"):
-
-        st.error(
-            transcript
-        )
-
-    else:
-
-        st.success(
-            f"🗣️ You said: {transcript}"
-        )
-
-        process_question(
-            transcript
-        )
-
-
-# =========================================================
-# IMAGE ANALYSIS
-# =========================================================
-
-st.divider()
-
-st.subheader(
-    "🖼️ Image Analysis"
-)
-
-
-uploaded_image = st.file_uploader(
-    "Upload an image",
-    type=[
-        "png",
-        "jpg",
-        "jpeg",
-        "webp"
-    ],
-    key="image_uploader"
-)
-
-
-image_question = st.text_input(
-    "What do you want to know about the image?",
-    value="Describe this image.",
-    key="image_question"
-)
-
-
-if uploaded_image:
-
-    st.image(
-        uploaded_image,
-        caption="Uploaded Image",
-        use_container_width=True
-    )
-
-
-    if st.button(
-        "🔍 Analyze Image",
-        use_container_width=True
-    ):
-
-        with st.spinner(
-            "🔎 Analyzing image..."
-        ):
-
-            try:
-
-                image_bytes = (
-                    uploaded_image.getvalue()
-                )
-
-
-                image_result = analyze_image(
-                    image_bytes,
-                    uploaded_image.type,
-                    image_question
-                )
-
-
-            except Exception as error:
-
-                image_result = (
-                    "❌ Image analysis failed:\n"
-                    + str(error)
-                )
-
-
-        with st.chat_message(
-            "assistant"
-        ):
-
-            st.markdown(
-                image_result
-            )
-
-
-            st.markdown(
-                """
-                <div class="tool-card">
-
-                🧠 <b>Tool Used:</b>
-                🖼️ Image Analysis
-
-                </div>
-                """,
-                unsafe_allow_html=True
-            )
-
-
-# =========================================================
-# SYSTEM STATUS
-# =========================================================
-
-st.divider()
-
-st.subheader(
-    "📊 System Status"
-)
-
-
-col1, col2, col3, col4 = (
-    st.columns(4)
-)
-
-
-# ---------------------------------------------------------
-# GEMINI STATUS
-# ---------------------------------------------------------
-
-with col1:
-
-    gemini_status = (
-        st.session_state.gemini_status
-    )
-
-    st.markdown(
-        f"""
-        <div class="status-card">
-
-        🤖<br>
-
-        <b>Gemini AI</b><br>
-
-        {gemini_status}
-
-        </div>
-        """,
-        unsafe_allow_html=True
-    )
-
-
-# ---------------------------------------------------------
-# PDF STATUS
-# ---------------------------------------------------------
-
-with col2:
-
-    pdf_status = (
-        "Ready"
-        if os.path.exists(
-            "data/all_vectors.pkl"
-        )
-        else "Not Indexed"
-    )
-
-
-    st.markdown(
-        f"""
-        <div class="status-card">
-
-        📚<br>
-
-        <b>PDF Knowledge</b><br>
-
-        {pdf_status}
-
-        </div>
-        """,
-        unsafe_allow_html=True
-    )
-
-
-# ---------------------------------------------------------
-# WEB STATUS
-# ---------------------------------------------------------
-
-with col3:
-
-    web_status = (
-        "Ready"
-        if os.getenv(
-            "TAVILY_API_KEY"
-        )
-        else "Not Configured"
-    )
-
-
-    st.markdown(
-        f"""
-        <div class="status-card">
-
-        🌐<br>
-
-        <b>Web Search</b><br>
-
-        {web_status}
-
-        </div>
-        """,
-        unsafe_allow_html=True
-    )
-
-
-# ---------------------------------------------------------
-# VOICE STATUS
-# ---------------------------------------------------------
-
-with col4:
-
-    voice_status = (
-        "Ready"
-        if voices
-        else "Unavailable"
-    )
-
-
-    st.markdown(
-        f"""
-        <div class="status-card">
-
-        🎙️<br>
-
-        <b>Voice System</b><br>
-
-        {voice_status}
-
-        </div>
-        """,
-        unsafe_allow_html=True
-    )
+    st.rerun()
 
 
 # =========================================================
 # FOOTER
 # =========================================================
 
+st.markdown("---")
+
 st.markdown(
     """
-    <div class="footer">
-
-        🤖 <b>Mini AI Agent</b>
-
-        <br><br>
-
-        PDF Knowledge • Smart Routing •
-        Web Search • Calculator •
-        Voice • Image Analysis • Memory
-
-        <br><br>
-
-        Mini AI Agent v7.0
-
+    <div style="text-align:center;">
+        <span class="small-text">
+        🤖 Mini AI Agent | Powered by Gemini AI | 
+        Built for CSE-AIML Project
+        </span>
     </div>
     """,
     unsafe_allow_html=True
